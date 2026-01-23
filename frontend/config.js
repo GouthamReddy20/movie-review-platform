@@ -1,11 +1,14 @@
-// config.js (Final working)
+// frontend/config.js (FINAL FIXED)
 
-// ✅ Automatically switch backend based on environment
+// Default Local
 let BASE_URL = "http://localhost:5000";
 
-if (window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
-  // ✅ deployed environment
-  BASE_URL = "https://movie-review-platform-ni74.onrender.com";
+// If hosted (not localhost), use Render backend
+if (
+  window.location.hostname !== "localhost" &&
+  window.location.hostname !== "127.0.0.1"
+) {
+  BASE_URL = "https://movie-review-backend-ul0y.onrender.com";
 }
 
 const API_BASE = `${BASE_URL}/api`;
