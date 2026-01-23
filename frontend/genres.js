@@ -62,7 +62,7 @@ function openMovieModal(movie) {
 // ---------- Fetch Genres ----------
 async function loadGenres() {
   try {
-    const res = await fetch('http://localhost:5000/genres');
+    const res = await fetch(`${API_BASE}/tmdb/genres`);
     const data = await res.json();
     const genresContainer = document.getElementById('genresContainer');
     genresContainer.innerHTML = '';
@@ -104,7 +104,7 @@ function setActiveGenreCard(card) {
 // ---------- Fetch Movies by Genre ----------
 async function loadMoviesByGenre(genreId, genreName) {
   try {
-    const res = await fetch(`http://localhost:5000/movies/genre/${genreId}`);
+    const res = await fetch(`${API_BASE}/tmdb/genre/${genreId}`);
     const data = await res.json();
     const moviesContainer = document.getElementById('moviesContainer');
     const moviesTitle = document.getElementById('moviesTitle');

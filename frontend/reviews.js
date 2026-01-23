@@ -74,7 +74,7 @@ async function fetchAny50Movies() {
   container.innerHTML = `<p>Loading movies...</p>`;
 
   try {
-    const res = await fetch("http://localhost:5000/api/tmdb/any50");
+    const res = await fetch(`${API_BASE}/tmdb/any50`);
     const data = await res.json();
 
     if (!data.results || data.results.length === 0) {

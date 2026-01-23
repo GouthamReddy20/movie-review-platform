@@ -63,7 +63,7 @@ async function fetchTrending(type = "day") {
 
   try {
     trendingContainer.innerHTML = `<p>Loading...</p>`;
-    const res = await fetch(`http://localhost:5000/api/tmdb/trending/${type}`);
+    const res = await fetch(`${API_BASE}/tmdb/trending/${type}`);
     const data = await res.json();
 
     if (!data.results || data.results.length === 0) {

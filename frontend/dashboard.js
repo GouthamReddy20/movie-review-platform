@@ -189,7 +189,7 @@ async function performSearch(scrollToResults = true, event) {
   showToast(`Searching for "${query}"...`, 'success');
 
   try {
-    const res = await fetch(`http://localhost:5000/search?q=${encodeURIComponent(query)}`);
+    const res = await fetch(`${BASE_URL}/search?q=${encodeURIComponent(query)}`);
     const data = await res.json();
     populateSection("searchResultsSection", data.results || []);
 
@@ -238,7 +238,7 @@ document.querySelector('.profile-picture').addEventListener('click', () => {
 // ---------- Load Homepage Movies ----------
 async function loadHomepage() {
   try {
-    const res = await fetch("http://localhost:5000/movies/homepage");
+    const res = await fetch(`${BASE_URL}/movies/homepage`);
     // const res = await fetch(`${API_BASE}/movies/homepage`);
     const data = await res.json();
 
@@ -257,7 +257,7 @@ async function loadHomepage() {
 // ---------- Load Latest Movie ----------
 async function loadLatest() {
   try {
-    const res = await fetch("http://localhost:5000/movies/latest");
+    const res = await fetch(`${BASE_URL}/movies/latest`);
     const latest = await res.json();
     const latestContainer = document.getElementById("latestMovieSection");
     if(latestContainer) {
