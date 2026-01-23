@@ -109,6 +109,7 @@ main {
   object-fit: cover;
 }
 
+
 .profile-info {
   display: flex;
   flex-direction: column;

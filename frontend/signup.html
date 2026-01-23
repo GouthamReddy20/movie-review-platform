@@ -105,7 +105,8 @@ if(signupForm){
           localStorage.setItem("token", loginData.token);
           localStorage.setItem("user", JSON.stringify(loginData.user));
           showToast("Logged in automatically ✅", "success");
-          setTimeout(()=>{ window.location.href="profile.html"; }, 500);
+          setTimeout(()=>{ window.location.href="dashboard.html"; }, 800);
+          // setTimeout(()=>{ window.location.href="profile.html"; }, 500);
         } else {
           window.location.href="login.html";
         }

@@ -1,4 +1,5 @@
-// ---------- Toast ----------
+// profile.js
+
 function showToast(msg, type = "success") {
   const toast = document.getElementById("toast");
   toast.textContent = msg;
@@ -7,76 +8,73 @@ function showToast(msg, type = "success") {
   setTimeout(() => { toast.style.display = "none"; }, 3000);
 }
 
-// ---------- Logout ----------
 document.getElementById("logoutBtn").addEventListener("click", () => {
   localStorage.removeItem("token");
+  localStorage.removeItem("user");
   showToast("Logged out successfully!", "success");
   setTimeout(() => { window.location.href = "login.html"; }, 1000);
 });
 
-// ---------- Populate Profile ----------
-function populateProfile() {
+async function loadProfile() {
   const token = localStorage.getItem("token");
-
-  // Only check for token and basic user info
-  if (!token || !user ) {
+  if (!token) {
     window.location.href = "login.html";
     return;
   }
 
-  // Header initials
-  const initials = user.name
-    ? user.name.split(" ").map(n => n[0]).join("").toUpperCase()
-    : "U";
-  document.getElementById("headerProfilePic").textContent = initials;
+  try {
+    const res = await fetch(`${API_BASE}/profile`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
 
-  // Avatar
-  const avatarEl = document.getElementById("profileAvatar");
-  avatarEl.innerHTML = user.avatar
-    ? `<img src="${user.avatar}" alt="${user.name}" style="border-radius:50%;width:120px;height:120px;">`
-    : '<i class="fas fa-user-circle fa-8x"></i>';
+    const data = await res.json();
 
-  // Name and tagline
-  document.querySelector(".username").textContent = user.name || "User";
-  document.querySelector(".user-tagline").textContent = user.tagline || "Movie lover";
+    if (!res.ok) {
+      showToast(data.message || "Failed to load profile", "error");
+      return;
+    }
 
-  // Stats (use fallbacks)
-  document.getElementById("statWatched").textContent = user.stats?.moviesWatched || 0;
-  document.getElementById("statReviews").textContent = user.stats?.reviewsWritten || 0;
-  document.getElementById("statWatchlist").textContent = user.stats?.watchlist || 0;
+    const user = data.user;
+    const stats = data.stats;
+    const activity = data.activity || [];
 
-  // About
-  document.getElementById("profileAbout").textContent = user.about || "No about info available.";
+    // Header initials
+    const initials = user.name
+      ? user.name.split(" ").map(n => n[0]).join("").toUpperCase()
+      : "U";
+    document.getElementById("headerProfilePic").textContent = initials;
 
-  // Recent activity
-  const activityList = document.getElementById("activityList");
-  activityList.innerHTML = "";
-  (user.activity || []).forEach(item => {
-    const li = document.createElement("li");
-    li.textContent = item.detail || "";
-    activityList.appendChild(li);
-  });
+    // Profile name
+    document.querySelector(".username").textContent = user.name || "User";
+    document.querySelector(".user-tagline").textContent = user.email || "";
 
-  // Animate stats
-  document.querySelectorAll(".stat-card").forEach((card, idx) => {
-    card.style.opacity = 0;
-    setTimeout(() => {
-      card.style.transition = "all 0.5s ease";
-      card.style.opacity = 1;
-    }, idx * 200);
-  });
+    // Stats
+    document.getElementById("statWatched").textContent = stats.favorites || 0; // using favorites instead of watched
+    document.getElementById("statReviews").textContent = stats.reviewsWritten || 0;
+    document.getElementById("statWatchlist").textContent = stats.watchlist || 0;
 
-  // Animate activity
-  document.querySelectorAll(".activity ul li").forEach((item, idx) => {
-    item.style.opacity = 0;
-    item.style.transform = "translateX(-20px)";
-    setTimeout(() => {
-      item.style.transition = "all 0.4s ease";
-      item.style.opacity = 1;
-      item.style.transform = "translateX(0)";
-    }, idx * 150);
-  });
+    // About
+    document.getElementById("profileAbout").textContent =
+      "Welcome to your MovieReview profile 🎬";
+
+    // Activity
+    const activityList = document.getElementById("activityList");
+    activityList.innerHTML = "";
+
+    if (!activity.length) {
+      activityList.innerHTML = "<li>No recent activity found.</li>";
+    } else {
+      activity.forEach(item => {
+        const li = document.createElement("li");
+        li.textContent = item.detail;
+        activityList.appendChild(li);
+      });
+    }
+
+  } catch (err) {
+    console.error(err);
+    showToast("Server not reachable ❌", "error");
+  }
 }
 
-// ---------- Initialize ----------
-window.addEventListener("DOMContentLoaded", populateProfile);
+window.addEventListener("DOMContentLoaded", loadProfile);

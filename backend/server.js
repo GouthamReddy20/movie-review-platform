@@ -1,30 +1,29 @@
-require('dotenv').config();
-const express = require('express');
+require("dotenv").config();
+const express = require("express");
 const cors = require("cors");
-const axios = require('axios');
-const path = require('path');
+const axios = require("axios");
+const path = require("path");
+const https = require("https");
 
-const contactRoutes = require('./src/routes/contactRoutes');
-const authRoutes = require('./src/routes/authRoutes');
-const movieRoutes = require('./src/routes/movieRoutes');
-const reviewRoutes = require('./src/routes/reviewRoutes'); // ✅ added
-const tmdbRoutes = require('./src/routes/tmdbRoutes');
-const profileRoutes = require('./src/routes/profileRoutes.js');
-
-
+const contactRoutes = require("./src/routes/contactRoutes");
+const authRoutes = require("./src/routes/authRoutes");
+const movieRoutes = require("./src/routes/movieRoutes");
+const reviewRoutes = require("./src/routes/reviewRoutes");
+const tmdbRoutes = require("./src/routes/tmdbRoutes");
+const profileRoutes = require("./src/routes/profileRoutes.js");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-const https = require('https');
+// ---------- Axios instance ----------
 const axiosInstance = axios.create({
-  timeout: 60000, // 10 seconds
+  timeout: 60000,
   httpsAgent: new https.Agent({ keepAlive: true }),
 });
 
 // TMDb API Key
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
-const TMDB_IMAGE_BASE = 'https://image.tmdb.org/t/p/w500';
+const TMDB_IMAGE_BASE = "https://image.tmdb.org/t/p/w500";
 
 if (!TMDB_API_KEY) {
   console.error("❌ TMDb API Key is missing! Add it to .env");
@@ -41,56 +40,58 @@ app.use(express.urlencoded({ extended: true }));
 
 // ✅ CORS setup
 const corsOptions = {
-  origin: function(origin, callback) {
+  origin: function (origin, callback) {
     const allowedOrigins = [
       "http://127.0.0.1:8080",
       "http://localhost:8080",
-      process.env.FRONTEND_URL
+      process.env.FRONTEND_URL,
     ].filter(Boolean);
 
     if (!origin) return callback(null, true); // allow non-browser requests
+
     if (allowedOrigins.includes(origin)) {
-      callback(null, true); // allow this origin
+      callback(null, true);
     } else {
       callback(new Error("CORS not allowed from this origin: " + origin));
     }
   },
-  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization"],
-  credentials: true
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  credentials: true,
 };
-if (process.env.NODE_ENV === "production") {
-  console.log("🌐 Running initDb in production...");
-  require("./src/config/initDb")(); // ✅ call the function, not IIFE
-}
 
-
-app.use(cors(corsOptions)); // ✅ this is correct
+app.use(cors(corsOptions));
 
 // -------------------
 // Serve frontend statically
 // -------------------
-const frontendPath = path.join(__dirname, '../frontend');
+const frontendPath = path.join(__dirname, "../frontend");
 app.use(express.static(frontendPath));
 
-// This ensures frontend URLs like dashboard.html, genre.html, etc., work
-app.get('*', (req, res, next) => {
+// Allow frontend routes (dashboard.html, profile.html etc.)
+app.get("*", (req, res, next) => {
   // Skip API routes
-  if (req.path.startsWith('/api') || req.path.startsWith('/movies') || req.path.startsWith('/search') || req.path.startsWith('/genres')) {
+  if (
+    req.path.startsWith("/api") ||
+    req.path.startsWith("/movies") ||
+    req.path.startsWith("/search") ||
+    req.path.startsWith("/genres")
+  ) {
     return next();
   }
-  res.sendFile(path.join(frontendPath, 'index.html'));
+  res.sendFile(path.join(frontendPath, "index.html"));
 });
 
 // -------------------
 // Mount Routes
 // -------------------
-app.use('/api/contact', contactRoutes);
-app.use('/api/auth', authRoutes);
-app.use('/api/movies', movieRoutes);  // movies CRUD + favorites
-app.use('/api/reviews', reviewRoutes); // ✅ reviews routes
-app.use('/api/tmdb', tmdbRoutes);
-app.use('/api/profile', profileRoutes);
+app.use("/api/contact", contactRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/movies", movieRoutes);
+app.use("/api/reviews", reviewRoutes);
+app.use("/api/tmdb", tmdbRoutes);
+app.use("/api/profile", profileRoutes);
+
 // -------------------
 // TMDb Cache
 // -------------------
@@ -114,7 +115,6 @@ function setCache(key, data, ttl = 1000 * 60 * 5) {
 async function axiosGetWithRetry(url, params, retries = 1) {
   try {
     const res = await axiosInstance.get(url, { params });
-
     return res.data;
   } catch (err) {
     if (retries > 0) {
@@ -129,14 +129,14 @@ async function axiosGetWithRetry(url, params, retries = 1) {
 // Helper to format movies
 // -------------------
 function formatMovies(results) {
-  return results.map(movie => ({
+  return results.map((movie) => ({
     id: movie.id,
     title: movie.title,
     overview: movie.overview,
     poster: movie.poster_path ? TMDB_IMAGE_BASE + movie.poster_path : null,
     backdrop: movie.backdrop_path ? TMDB_IMAGE_BASE + movie.backdrop_path : null,
     release_date: movie.release_date,
-    vote_average: movie.vote_average
+    vote_average: movie.vote_average,
   }));
 }
 
@@ -145,7 +145,7 @@ function formatMovies(results) {
 // -------------------
 
 // Get movie by ID
-app.get('/movie/:id', async (req, res) => {
+app.get("/movie/:id", async (req, res) => {
   const movieId = req.params.id;
   if (!movieId) return res.status(400).json({ error: "No movie selected" });
 
@@ -165,10 +165,10 @@ app.get('/movie/:id', async (req, res) => {
       overview: tmdbData.overview,
       poster: tmdbData.poster_path ? TMDB_IMAGE_BASE + tmdbData.poster_path : null,
       backdrop: tmdbData.backdrop_path ? TMDB_IMAGE_BASE + tmdbData.backdrop_path : null,
-      genres: tmdbData.genres.map(g => g.name),
+      genres: tmdbData.genres.map((g) => g.name),
       release_date: tmdbData.release_date,
       vote_average: tmdbData.vote_average,
-      runtime: tmdbData.runtime
+      runtime: tmdbData.runtime,
     };
 
     setCache(cacheKey, data);
@@ -180,7 +180,7 @@ app.get('/movie/:id', async (req, res) => {
 });
 
 // Search movies
-app.get('/search', async (req, res) => {
+app.get("/search", async (req, res) => {
   const query = req.query.q;
   const page = Number(req.query.page) || 1;
 
@@ -193,7 +193,7 @@ app.get('/search', async (req, res) => {
 
   try {
     const tmdbData = await axiosGetWithRetry(
-      'https://api.themoviedb.org/3/search/movie',
+      "https://api.themoviedb.org/3/search/movie",
       { api_key: TMDB_API_KEY, query, include_adult: false, page }
     );
 
@@ -201,7 +201,7 @@ app.get('/search', async (req, res) => {
       page: tmdbData.page,
       total_pages: tmdbData.total_pages,
       total_results: tmdbData.total_results,
-      results: formatMovies(tmdbData.results)
+      results: formatMovies(tmdbData.results),
     };
 
     setCache(cacheKey, data);
@@ -214,12 +214,12 @@ app.get('/search', async (req, res) => {
 
 // Popular, Top-rated, Upcoming
 const movieEndpoints = [
-  { path: 'popular', url: 'https://api.themoviedb.org/3/movie/popular' },
-  { path: 'top-rated', url: 'https://api.themoviedb.org/3/movie/top_rated' },
-  { path: 'upcoming', url: 'https://api.themoviedb.org/3/movie/upcoming' }
+  { path: "popular", url: "https://api.themoviedb.org/3/movie/popular" },
+  { path: "top-rated", url: "https://api.themoviedb.org/3/movie/top_rated" },
+  { path: "upcoming", url: "https://api.themoviedb.org/3/movie/upcoming" },
 ];
 
-movieEndpoints.forEach(ep => {
+movieEndpoints.forEach((ep) => {
   app.get(`/movies/${ep.path}`, async (req, res) => {
     const page = Number(req.query.page) || 1;
     if (page < 1 || page > 1000) return res.status(400).json({ error: "Page must be between 1 and 1000" });
@@ -230,12 +230,14 @@ movieEndpoints.forEach(ep => {
 
     try {
       const tmdbData = await axiosGetWithRetry(ep.url, { api_key: TMDB_API_KEY, page });
+
       const data = {
         page: tmdbData.page,
         total_pages: tmdbData.total_pages,
         total_results: tmdbData.total_results,
-        results: formatMovies(tmdbData.results)
+        results: formatMovies(tmdbData.results),
       };
+
       setCache(cacheKey, data);
       res.json(data);
     } catch (error) {
@@ -246,7 +248,7 @@ movieEndpoints.forEach(ep => {
 });
 
 // Homepage movies
-app.get('/movies/homepage', async (req, res) => {
+app.get("/movies/homepage", async (req, res) => {
   const page = Number(req.query.page) || 1;
   const cacheKey = `homepage_${page}`;
   const cached = getCache(cacheKey);
@@ -254,15 +256,15 @@ app.get('/movies/homepage', async (req, res) => {
 
   try {
     const [popular, topRated, upcoming] = await Promise.all([
-      axiosGetWithRetry('https://api.themoviedb.org/3/movie/popular', { api_key: TMDB_API_KEY, page }),
-      axiosGetWithRetry('https://api.themoviedb.org/3/movie/top_rated', { api_key: TMDB_API_KEY, page }),
-      axiosGetWithRetry('https://api.themoviedb.org/3/movie/upcoming', { api_key: TMDB_API_KEY, page })
+      axiosGetWithRetry("https://api.themoviedb.org/3/movie/popular", { api_key: TMDB_API_KEY, page }),
+      axiosGetWithRetry("https://api.themoviedb.org/3/movie/top_rated", { api_key: TMDB_API_KEY, page }),
+      axiosGetWithRetry("https://api.themoviedb.org/3/movie/upcoming", { api_key: TMDB_API_KEY, page }),
     ]);
 
     const data = {
       popular: formatMovies(popular.results),
       top_rated: formatMovies(topRated.results),
-      upcoming: formatMovies(upcoming.results)
+      upcoming: formatMovies(upcoming.results),
     };
 
     setCache(cacheKey, data);
@@ -274,14 +276,14 @@ app.get('/movies/homepage', async (req, res) => {
 });
 
 // Latest movie
-app.get('/movies/latest', async (req, res) => {
+app.get("/movies/latest", async (req, res) => {
   const cacheKey = `latest_movie`;
   const cached = getCache(cacheKey);
   if (cached) return res.json(cached);
 
   try {
     const tmdbData = await axiosGetWithRetry(
-      'https://api.themoviedb.org/3/movie/now_playing',
+      "https://api.themoviedb.org/3/movie/now_playing",
       { api_key: TMDB_API_KEY, page: 1 }
     );
 
@@ -298,10 +300,10 @@ app.get('/movies/latest', async (req, res) => {
       poster: latestMovie.poster_path ? TMDB_IMAGE_BASE + latestMovie.poster_path : null,
       backdrop: latestMovie.backdrop_path ? TMDB_IMAGE_BASE + latestMovie.backdrop_path : null,
       release_date: latestMovie.release_date,
-      vote_average: latestMovie.vote_average
+      vote_average: latestMovie.vote_average,
     };
 
-    setCache(cacheKey, data, 1000 * 60 * 10); // 10 mins cache
+    setCache(cacheKey, data, 1000 * 60 * 10);
     res.json(data);
   } catch (error) {
     console.error("TMDb API Error (latest):", error.response?.data || error.message);
@@ -309,22 +311,19 @@ app.get('/movies/latest', async (req, res) => {
   }
 });
 
-// -------------------
-// GENRES ENDPOINTS
-// -------------------
-
-// Get all movie genres
-app.get('/genres', async (req, res) => {
-  const cacheKey = 'genres_list';
+// Get all genres
+app.get("/genres", async (req, res) => {
+  const cacheKey = "genres_list";
   const cached = getCache(cacheKey);
   if (cached) return res.json(cached);
 
   try {
     const tmdbData = await axiosGetWithRetry(
-      'https://api.themoviedb.org/3/genre/movie/list',
-      { api_key: TMDB_API_KEY, language: 'en-US' }
+      "https://api.themoviedb.org/3/genre/movie/list",
+      { api_key: TMDB_API_KEY, language: "en-US" }
     );
-    setCache(cacheKey, tmdbData, 1000 * 60 * 60); // 1 hour cache
+
+    setCache(cacheKey, tmdbData, 1000 * 60 * 60);
     res.json(tmdbData);
   } catch (error) {
     console.error("TMDb API Error (/genres):", error.response?.data || error.message);
@@ -333,7 +332,7 @@ app.get('/genres', async (req, res) => {
 });
 
 // Get movies by genre ID
-app.get('/movies/genre/:id', async (req, res) => {
+app.get("/movies/genre/:id", async (req, res) => {
   const genreId = req.params.id;
   if (!genreId) return res.status(400).json({ error: "Genre ID is required" });
 
@@ -343,13 +342,13 @@ app.get('/movies/genre/:id', async (req, res) => {
 
   try {
     const tmdbData = await axiosGetWithRetry(
-      'https://api.themoviedb.org/3/discover/movie',
-      { api_key: TMDB_API_KEY, with_genres: genreId, sort_by: 'popularity.desc' }
+      "https://api.themoviedb.org/3/discover/movie",
+      { api_key: TMDB_API_KEY, with_genres: genreId, sort_by: "popularity.desc" }
     );
 
     const results = formatMovies(tmdbData.results);
+    setCache(cacheKey, { results }, 1000 * 60 * 30);
 
-    setCache(cacheKey, { results }, 1000 * 60 * 30); // 30 mins cache
     res.json({ results });
   } catch (error) {
     console.error("TMDb API Error (/movies/genre/:id):", error.response?.data || error.message);
@@ -357,14 +356,10 @@ app.get('/movies/genre/:id', async (req, res) => {
   }
 });
 
-// -------------------
-// TRENDING ENDPOINTS
-// -------------------
-
-// Trending movies (Day or Week)
-app.get('/movies/trending/:time_window', async (req, res) => {
-  const { time_window } = req.params; // "day" or "week"
-  if (!['day', 'week'].includes(time_window)) {
+// Trending movies
+app.get("/movies/trending/:time_window", async (req, res) => {
+  const { time_window } = req.params;
+  if (!["day", "week"].includes(time_window)) {
     return res.status(400).json({ error: "time_window must be 'day' or 'week'" });
   }
 
@@ -382,10 +377,10 @@ app.get('/movies/trending/:time_window', async (req, res) => {
       page: tmdbData.page,
       total_pages: tmdbData.total_pages,
       total_results: tmdbData.total_results,
-      results: formatMovies(tmdbData.results)
+      results: formatMovies(tmdbData.results),
     };
 
-    setCache(cacheKey, data, 1000 * 60 * 10); // 10 mins cache
+    setCache(cacheKey, data, 1000 * 60 * 10);
     res.json(data);
   } catch (error) {
     console.error(`TMDb API Error (trending/${time_window}):`, error.response?.data || error.message);
@@ -397,8 +392,6 @@ app.get('/movies/trending/:time_window', async (req, res) => {
 // Start server
 // -------------------
 app.listen(PORT, () => {
-  console.log("TMDb API Key:", process.env.TMDB_API_KEY);
-    console.log("🌐 Running initDb in production...");
   console.log(`✅ Server running at http://localhost:${PORT}`);
-  console.log(`✅ Frontend served from ${frontendPath}`); 
+  console.log(`✅ Frontend served from ${frontendPath}`);
 });
