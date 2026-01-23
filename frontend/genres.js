@@ -1,10 +1,14 @@
+// genres.js (UPDATED FOR DEPLOYMENT)
+
 // ---------- Toast ----------
 function showToast(msg, type = "success") {
   const toast = document.getElementById("toast");
   toast.textContent = msg;
   toast.className = "toast " + type;
   toast.style.display = "block";
-  setTimeout(() => { toast.style.display = "none"; }, 3000);
+  setTimeout(() => {
+    toast.style.display = "none";
+  }, 3000);
 }
 
 // ---------- Global ----------
@@ -12,6 +16,11 @@ const PLACEHOLDER_IMG = "https://via.placeholder.com/150x225?text=No+Image";
 let defaultActionGenreId = null;
 let activeGenreCard = null;
 let modal, movieDetailsContainer;
+
+// ✅ Load API_BASE from config.js
+// config.js gives API_BASE like: https://.../api
+// So genres will be: `${API_BASE}/tmdb/genres`
+console.log("✅ Using API_BASE:", API_BASE);
 
 // ---------- Dynamic Modal Creation ----------
 (function createModal() {
@@ -30,25 +39,39 @@ let modal, movieDetailsContainer;
   movieDetailsContainer = document.getElementById("movieDetailsContainer");
 
   const closeBtn = modal.querySelector(".closeBtn");
-  closeBtn.addEventListener("click", () => { modal.classList.remove("show"); setTimeout(()=> modal.style.display="none",300); });
-  window.addEventListener("click", e => { if (e.target === modal) { modal.classList.remove("show"); setTimeout(()=> modal.style.display="none",300); }});
+  closeBtn.addEventListener("click", () => {
+    modal.classList.remove("show");
+    setTimeout(() => (modal.style.display = "none"), 300);
+  });
+
+  window.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      modal.classList.remove("show");
+      setTimeout(() => (modal.style.display = "none"), 300);
+    }
+  });
 })();
 
 // ---------- Open Movie Modal ----------
 function openMovieModal(movie) {
   if (!modal) return;
+
   movieDetailsContainer.innerHTML = `
     <div class="movie-details-modal" style="display:flex;gap:20px;flex-wrap:wrap;">
-      <img src="${movie.poster || PLACEHOLDER_IMG}" alt="${movie.title}" style="flex:1 1 300px; max-width:300px;" onerror="this.src='${PLACEHOLDER_IMG}'">
+      <img src="${movie.poster || PLACEHOLDER_IMG}" alt="${movie.title}"
+           style="flex:1 1 300px; max-width:300px;"
+           onerror="this.src='${PLACEHOLDER_IMG}'">
+
       <div style="flex:2 1 500px;">
         <h2>${movie.title || "N/A"}</h2>
         <p>${movie.overview || "No overview available."}</p>
-        <p><strong>Rating:</strong> ${movie.rating || movie.vote_average || "N/A"}</p>
+        <p><strong>Rating:</strong> ${movie.vote_average || "N/A"}</p>
         <p><strong>Release Date:</strong> ${movie.release_date || "N/A"}</p>
         <button class="view-details-btn">View Details</button>
       </div>
     </div>
   `;
+
   document.querySelector(".view-details-btn").addEventListener("click", () => {
     sessionStorage.setItem("selectedMovie", JSON.stringify(movie));
     window.location.href = "movieDetail.html";
@@ -59,80 +82,92 @@ function openMovieModal(movie) {
   setTimeout(() => modal.classList.add("show"), 10);
 }
 
+// ---------- Highlight Active Genre ----------
+function setActiveGenreCard(card) {
+  if (activeGenreCard) activeGenreCard.classList.remove("active");
+  activeGenreCard = card;
+  activeGenreCard.classList.add("active");
+}
+
 // ---------- Fetch Genres ----------
 async function loadGenres() {
   try {
+    // ✅ UPDATED ROUTE
     const res = await fetch(`${API_BASE}/tmdb/genres`);
-    const data = await res.json();
-    const genresContainer = document.getElementById('genresContainer');
-    genresContainer.innerHTML = '';
+    const genres = await res.json();
 
-    data.genres.forEach(genre => {
-      const div = document.createElement('div');
-      div.className = 'genre-card';
+    const genresContainer = document.getElementById("genresContainer");
+    genresContainer.innerHTML = "";
+
+    if (!Array.isArray(genres) || genres.length === 0) {
+      genresContainer.innerHTML = "<p>No genres found.</p>";
+      return;
+    }
+
+    genres.forEach((genre) => {
+      const div = document.createElement("div");
+      div.className = "genre-card";
       div.textContent = genre.name;
 
-      div.addEventListener('click', () => {
+      div.addEventListener("click", () => {
         setActiveGenreCard(div);
         loadMoviesByGenre(genre.id, genre.name);
       });
 
       genresContainer.appendChild(div);
 
-      if (genre.name.toLowerCase() === 'action') {
+      // Auto load Action genre first
+      if (genre.name.toLowerCase() === "action") {
         defaultActionGenreId = genre.id;
         setActiveGenreCard(div);
       }
     });
 
     if (defaultActionGenreId) {
-      loadMoviesByGenre(defaultActionGenreId, 'Action');
+      loadMoviesByGenre(defaultActionGenreId, "Action");
     }
   } catch (err) {
     console.error(err);
-    showToast("Failed to load genres", "error");
+    showToast("Failed to load genres ❌", "error");
   }
-}
-
-// ---------- Highlight Active Genre ----------
-function setActiveGenreCard(card) {
-  if (activeGenreCard) activeGenreCard.classList.remove('active');
-  activeGenreCard = card;
-  activeGenreCard.classList.add('active');
 }
 
 // ---------- Fetch Movies by Genre ----------
 async function loadMoviesByGenre(genreId, genreName) {
   try {
+    // ✅ UPDATED ROUTE
     const res = await fetch(`${API_BASE}/tmdb/genre/${genreId}`);
     const data = await res.json();
-    const moviesContainer = document.getElementById('moviesContainer');
-    const moviesTitle = document.getElementById('moviesTitle');
+
+    const moviesContainer = document.getElementById("moviesContainer");
+    const moviesTitle = document.getElementById("moviesTitle");
+
     moviesTitle.textContent = `Movies: ${genreName}`;
-    moviesContainer.innerHTML = '';
+    moviesContainer.innerHTML = "";
 
     if (!data.results || data.results.length === 0) {
-      moviesContainer.innerHTML = '<p>No movies found for this genre.</p>';
+      moviesContainer.innerHTML = "<p>No movies found for this genre.</p>";
       return;
     }
 
-    data.results.forEach(movie => {
-      const div = document.createElement('div');
-      div.className = 'scroll-card';
+    data.results.forEach((movie) => {
+      const div = document.createElement("div");
+      div.className = "scroll-card";
       div.innerHTML = `
-        <img src="${movie.poster || PLACEHOLDER_IMG}" alt="${movie.title}" onerror="this.src='${PLACEHOLDER_IMG}'">
+        <img src="${movie.poster || PLACEHOLDER_IMG}" alt="${movie.title}"
+             onerror="this.src='${PLACEHOLDER_IMG}'">
         <p>${movie.title}</p>
       `;
-      div.addEventListener('click', () => openMovieModal(movie));
+      div.addEventListener("click", () => openMovieModal(movie));
       moviesContainer.appendChild(div);
     });
   } catch (err) {
     console.error(err);
-    showToast("Failed to load movies", "error");
+    showToast("Failed to load movies ❌", "error");
   }
 }
 
 // ---------- Initialize ----------
-window.addEventListener('load', () => {
+window.addEventListener("load", () => {
   loadGenres();
 });

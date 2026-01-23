@@ -1,5 +1,3 @@
-// movieDetails.js
-
 // -------------------
 // Elements
 // -------------------
@@ -12,6 +10,9 @@ const runtimeEl = document.querySelector(".runtime");
 const releaseEl = document.querySelector(".release-date");
 const ratingEl = document.querySelector(".rating");
 const genresEl = document.querySelector(".genres");
+const castList = document.getElementById("castList");
+const crewList = document.getElementById("crewList");
+const trailerEl = document.getElementById("trailer");
 const watchlistBtn = document.getElementById("watchlistBtn");
 const toast = document.getElementById("toast");
 const reviewForm = document.getElementById("reviewForm");
@@ -21,12 +22,9 @@ const reviewsContainer = document.getElementById("reviewsContainer");
 // -------------------
 // Config
 // -------------------
-const movieData = JSON.parse(sessionStorage.getItem("selectedMovie") || localStorage.getItem("selectedMovie"));
+const movieData = JSON.parse(localStorage.getItem("selectedMovie"));
 const token = localStorage.getItem("token");
-
-// ✅ must load from config.js
-// config.js must define API_BASE
-console.log("✅ API_BASE in movieDetails.js:", API_BASE);
+const BASE_URL = "http://localhost:5000"; // Your backend
 
 // -------------------
 // Toast
@@ -54,23 +52,35 @@ function renderMovieDetails(data) {
 }
 
 // -------------------
-// Load TMDB movie details (FULL)
+// Load extras: cast, crew, trailer
 // -------------------
-async function loadMovieDetails(movieId) {
+async function loadExtras(movieId) {
   try {
-    const res = await fetch(`${API_BASE}/tmdb/movie/${movieId}`);
-    if (!res.ok) throw new Error("Failed to fetch movie details");
+    const res = await fetch(`${BASE_URL}/movie/${movieId}`);
+    if (!res.ok) throw new Error("Failed to fetch movie extras");
     const data = await res.json();
 
-    // Merge with stored movieData info
-    renderMovieDetails({
-      ...movieData,
-      ...data,
-    });
+    // Cast & Crew
+    if (data.credits) {
+      castList.innerHTML = (data.credits.cast || []).slice(0, 10).map(actor => `
+        <div class="actor">
+          <img src="${actor.profile_path ? "https://image.tmdb.org/t/p/w200" + actor.profile_path : ""}" alt="${actor.name}">
+          <p>${actor.name}<br><small>${actor.character}</small></p>
+        </div>
+      `).join("");
 
-  } catch (err) {
-    console.error(err);
-    showToast("Failed to load movie details", "error");
+      crewList.innerHTML = (data.credits.crew || []).filter(c => ["Director","Producer"].includes(c.job))
+        .map(c => `<p>${c.name} - ${c.job}</p>`).join("");
+    }
+
+    // Trailer
+    if (data.videos) {
+      const trailer = data.videos.results.find(v => v.type === "Trailer");
+      if (trailer) trailerEl.src = `https://www.youtube.com/embed/${trailer.key}`;
+    }
+
+  } catch(err) {
+    console.error("Failed to load extras", err);
   }
 }
 
@@ -79,62 +89,47 @@ async function loadMovieDetails(movieId) {
 // -------------------
 async function toggleWatchlist() {
   if (!token) return showToast("Login required", "error");
-
   try {
-    const res = await fetch(`${API_BASE}/movies/${movieData.id}/favorite`, {
+    const res = await fetch(`${BASE_URL}/api/movies/${movieData.id}/favorite`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${token}` }
+      headers: { "Authorization": `Bearer ${token}` }
     });
-
     const data = await res.json();
 
     if (res.ok) {
       showToast("Added to Watchlist!", "success");
-      return;
-    }
-
-    // already exists → remove
-    if (res.status === 400 && data.message === "Already in watchlist") {
-      const removeRes = await fetch(`${API_BASE}/movies/${movieData.id}/favorite`, {
+    } else if (res.status === 400 && data.message === "Already in watchlist") {
+      // Remove if already in watchlist
+      const removeRes = await fetch(`${BASE_URL}/api/movies/${movieData.id}/favorite`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { "Authorization": `Bearer ${token}` }
       });
-
       const removeData = await removeRes.json();
       if (removeRes.ok) showToast("Removed from Watchlist", "success");
       else showToast(removeData.error || "Failed to remove", "error");
-      return;
+    } else {
+      showToast(data.error || "Failed to add to Watchlist", "error");
     }
-
-    showToast(data.error || "Failed to update Watchlist", "error");
-  } catch (err) {
-    console.error(err);
+  } catch(err) {
     showToast("Failed to update Watchlist", "error");
   }
 }
 
-watchlistBtn?.addEventListener("click", toggleWatchlist);
+watchlistBtn.addEventListener("click", toggleWatchlist);
 
 // -------------------
 // Load reviews
 // -------------------
 async function loadReviews() {
   try {
-    const res = await fetch(`${API_BASE}/reviews/${movieData.id}`);
+    const res = await fetch(`${BASE_URL}/api/reviews/movie/${movieData.id}`);
     const reviews = await res.json();
-
-    if (!Array.isArray(reviews)) {
-      reviewsContainer.innerHTML = "<p>No reviews found.</p>";
-      return;
-    }
-
     reviewsContainer.innerHTML = reviews.map(r => `
       <div class="review-card">
-        <strong>${r.user_name || "User"}</strong>: ${r.comment || ""} ⭐ ${r.rating || 0}
+        <strong>${r.user_name}</strong>: ${r.comment} ⭐ ${r.rating}
       </div>
     `).join("");
-  } catch (err) {
-    console.error(err);
+  } catch(err) {
     reviewsContainer.innerHTML = "<p>Failed to load reviews.</p>";
   }
 }
@@ -142,7 +137,7 @@ async function loadReviews() {
 // -------------------
 // Add review
 // -------------------
-reviewForm?.addEventListener("submit", async e => {
+reviewForm.addEventListener("submit", async e => {
   e.preventDefault();
   const content = reviewInput.value.trim();
   if (!content) return;
@@ -150,31 +145,21 @@ reviewForm?.addEventListener("submit", async e => {
   if (!token) return showToast("Login required", "error");
 
   try {
-    const res = await fetch(`${API_BASE}/reviews`, {
+    const res = await fetch(`${BASE_URL}/api/reviews`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        movie_id: movieData.id,
-        rating: 5,
-        comment: content
-      })
+      headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
+      body: JSON.stringify({ movie_id: movieData.id, rating: 5, comment: content })
     });
 
     const data = await res.json();
-
     if (res.ok) {
       reviewInput.value = "";
       showToast("Review added!", "success");
       loadReviews();
     } else {
-      showToast(data.error || "Failed to add review", "error");
+      showToast(data.message || "Failed to add review", "error");
     }
-
-  } catch (err) {
-    console.error(err);
+  } catch(err) {
     showToast("Failed to add review", "error");
   }
 });
@@ -182,10 +167,12 @@ reviewForm?.addEventListener("submit", async e => {
 // -------------------
 // Initialize
 // -------------------
-if (movieData && movieData.id) {
+if (movieData) {
   renderMovieDetails(movieData);
-  loadMovieDetails(movieData.id); // ✅ fetch full details from TMDB route
-  loadReviews();
+  if (movieData.id) {
+    loadExtras(movieData.id);
+    loadReviews();
+  }
 } else {
   showToast("No movie selected!", "error");
 }
