@@ -55,6 +55,15 @@ The platform provides a seamless experience for users to discover trending movie
 
 * TMDB API (for movie data)
 
+### Deployment
+Frontend: Vercel
+Backend: Render
+Database: Supabase / MongoDB Atlas
+### 🌐 Live Demo
+
+👉 Frontend: https://movie-review-frontend-swart.vercel.app
+👉 Backend API: https://your-backend-url.onrender.com
+
 ---
 
 ## ⚙️ Getting Started
