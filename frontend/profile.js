@@ -1,5 +1,5 @@
 // profile.js
-
+// Improved API handling and error management
 function showToast(msg, type = "success") {
   const toast = document.getElementById("toast");
   toast.textContent = msg;
