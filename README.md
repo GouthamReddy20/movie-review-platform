@@ -1,5 +1,6 @@
 # 🎬 Movie Review Platform
 
+
 ## 📌 Overview
 
 This project is a full-stack movie review web application that allows users to explore movies, view details, and share reviews. It integrates with the TMDB API to fetch real-time movie data and uses Supabase for backend services including authentication and database management.
@@ -62,7 +63,6 @@ Database: Supabase / MongoDB Atlas
 ### 🌐 Live Demo
 
 👉 Frontend: https://movie-review-frontend-swart.vercel.app
-👉 Backend API: https://your-backend-url.onrender.com
 
 ---
 
@@ -158,3 +158,19 @@ movie-review-platform/
 ## 👨‍💻 Author
 
 **C S Goutham Reddy**
+=======
+This is a full-stack movie review application where users can explore movies, view details, and post reviews.
+
+## Tech Stack
+- Html
+- CSS
+- Java Script
+- Supabase
+- TMDB API
+
+## Features
+- User authentication
+- Browse trending movies
+- Movie details page
+- Reviews system
+ 5dcbbdf (Added project README and improved documentation)
